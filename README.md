@@ -8,16 +8,29 @@ Cyberfront 版 Heavy Gear 2 日本語版を Windows 11 x64 で動かすための
 - 同じ日本語版の CD イメージ（`HG2JP.CUE` と `HG2JP.IMG`）。
 - 日本語のシステム ロケール（コードページ932）を使用する Windows 11 x64。
 - 初回のFFmpeg自動取得に使うインターネット接続。ダウンロードは約110 MiBです。
-- ゲームを置くドライブの空き容量500 MB以上。インストール中の一時ファイルと、元のファイルのバックアップに使います。
+- ゲームを置くドライブの空き容量。CDから新規インストールする場合は1 GB以上、既存のゲームにパッチを適用する場合は500 MB以上です。
 - FFmpegを自動取得する場合は、ユーザーの一時フォルダと `%LOCALAPPDATA%` があるドライブに合計350 MB以上の空き容量。
 
 ## インストール
 
-1. パッチ一式を展開します。CUEを自動で検出させるには、`HG2JP.CUE` と `HG2JP.IMG` を展開先に置きます。`HG2JP.CUE` を仮想CDドライブにマウントします。[ImgDrive](https://www.yubsoft.com/imgdrive/)
-2. **先にゲームCD内のインストーラーを実行し、ゲーム本体をインストールします。** ゲームフォルダに `Heavy Gear 2.exe` と `Shell\Movies` の元の動画29本が入る構成でインストールしてください。
-3. ゲームを終了し、展開先の `Install-Win11.cmd` をダブルクリックします。標準のゲームフォルダと、ゲームフォルダまたは展開先にあるCUEは自動で検出します。別の場所にある場合は、画面の案内に従って選択してください。
-4. Windowsの管理者確認が表示された場合は［はい］を選びます。FFmpegの取得と動画の変換は自動で進み、CDの音声トラック02〜19は `CDDA` フォルダに128 kbpsのMP3として保存されます。
-5. `Installed successfully` と表示されたら、ゲームフォルダの `Launch-Win11.cmd` を普段プレイする Windows アカウントで起動します。初回起動時に、そのアカウント用の BGM 設定が作成されます。
+パッチ一式を展開します。CUEを自動で検出させるには、`HG2JP.CUE` と `HG2JP.IMG` を展開先に置きます。`HG2JP.CUE` を仮想CDドライブにマウントします。[ImgDrive](https://www.yubsoft.com/imgdrive/)
+
+### CDから新規インストール
+
+1. `Install-From-CD.cmd` をダブルクリックします。CUEを求められた場合は `HG2JP.CUE` を選択してください。
+2. ゲーム本体がCDのデータから展開され、Windows 11用パッチが続けて適用されます。CD内のセットアップを起動する手順は不要です。
+3. `Installed successfully` と表示されたら、`%USERPROFILE%\Games\Heavy Gear 2` にある `Launch-Win11.cmd` を起動します。
+
+インストール先を変更する場合は、コマンドプロンプトで `Install-From-CD.cmd -GameDir "D:\Games\Heavy Gear 2"` のように、書き込み可能な場所にある新規フォルダを指定します。
+
+### CD内のインストーラーで入れたゲームにパッチを適用
+
+1. ゲームCD内のインストーラーで、ゲーム本体をインストールしておきます。ゲームフォルダに `Heavy Gear 2.exe` と `Shell\Movies` の元の動画29本が入る構成でインストールしてください。
+2. ゲームを終了し、展開先の `Install-Win11.cmd` をダブルクリックします。標準のゲームフォルダと、ゲームフォルダまたは展開先にあるCUEは自動で検出します。別の場所にある場合は、画面の案内に従って選択してください。
+3. Windowsの管理者確認が表示された場合は［はい］を選びます。
+4. `Installed successfully` と表示されたら、ゲームフォルダの `Launch-Win11.cmd` を起動します。
+
+どちらの方法でも動画の変換は自動で進み、CDの音声トラック02〜19は `CDDA` フォルダに128 kbpsのMP3として保存されます。普段プレイする Windows アカウントで起動すると、初回にそのアカウント用のBGM設定が作られます。
 
 `ffmpeg.exe` と `ffprobe.exe` がPATH上の同じフォルダにあれば、それらを使用します。自動取得したFFmpegはSHA-256で照合し、`%LOCALAPPDATA%\Cyberfront\Heavy Gear 2\Tools` に保存して次回も使います。[FFmpeg 9.0.2 Essentialsの配布元](https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2)
 

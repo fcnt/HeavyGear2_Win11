@@ -17,6 +17,6 @@ try {
 } finally {
     if(Test-Path -LiteralPath $original){Remove-Item -LiteralPath $original}
 }
-if((Get-FileHash -LiteralPath $OutputDll).Hash -ne 'DC09E04D996B516FB436B7B3277EE1E1DF4622A986376EA1921062CBE20BBA0A'){
+if((Get-FileHash -LiteralPath $OutputDll).Hash -ne '265E43304E4194489F10340227DDB5B4137D87D13E4191C1405ED08A1EC665BC'){
     throw 'Unexpected output from the EAR sound patch.'
 }

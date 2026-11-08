@@ -19,4 +19,7 @@ for($entry=0x2ca6c;[BitConverter]::ToUInt32($bytes,$entry);$entry+=4){
 $directoryArguments=[byte[]](0x8d,0x8d,0xe0,0xfe,0xff,0xff,0x51,0x68,0x04,0x01,0x00,0x00)
 [Array]::Copy($directoryArguments,0,$bytes,0x596d,$directoryArguments.Length)
 [Array]::Copy($ascii.GetBytes('\hg2cd.ear'+[char]0),0,$bytes,0x2f228,11)
+# EAR closes CD audio with MCI_NOTIFY and a null callback pointer. Wait for
+# the close instead, as EAR already does at its other CD audio close sites.
+$bytes[0x4014]=0x02
 [IO.File]::WriteAllBytes($OutputDll,$bytes)

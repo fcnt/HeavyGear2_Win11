@@ -3,46 +3,53 @@
     [string]$CuePath,
     [string]$DiscRoot,
     [string]$FFmpegPath,
+    [switch]$FromDisc,
     [switch]$Interactive,
     [string]$ResultPath
 )
 $ErrorActionPreference='Stop'
 
 function Install-GamePatch {
-    $exeHash='C1690A6E471FBB0CAEA1A81BDF135875C7284243AF8AF1B9CB7FF535274E6F9F'
-    $default=Join-Path ${env:ProgramFiles(x86)} 'Cyberfront\Heavy Gear 2'
-    if(!$GameDir){
-        $defaultExe=Join-Path $default 'Heavy Gear 2.exe'
-        if((Test-Path -LiteralPath $defaultExe -PathType Leaf) -and (Get-FileHash -LiteralPath $defaultExe).Hash -eq $exeHash){
-            $GameDir=$default
-            Write-Host "Found Heavy Gear 2: $GameDir"
-        }
-    }
-    if($Interactive){Add-Type -AssemblyName System.Windows.Forms}
-    if(!$GameDir -and $Interactive){
-        $selector=[Windows.Forms.FolderBrowserDialog]::new()
-        try {
-            $selector.Description='Heavy Gear 2.exe が入っているゲームフォルダを選んでください。'
-            $selector.ShowNewFolderButton=$false
-            if(Test-Path -LiteralPath $default){$selector.SelectedPath=$default}
-            if($selector.ShowDialog() -ne 'OK'){return 'Installation cancelled.'}
-            $GameDir=$selector.SelectedPath
-        } finally {$selector.Dispose()}
-    }
-    if(!$GameDir){throw 'Specify the installed game folder with -GameDir.'}
-    $GameDir=(Resolve-Path -LiteralPath $GameDir).ProviderPath
-    $exe=Join-Path $GameDir 'Heavy Gear 2.exe'
-    $win11Exe=Join-Path $GameDir 'Heavy Gear 2 Win11.exe'
-    if((Get-FileHash -LiteralPath $exe).Hash -ne $exeHash){throw 'Unsupported Heavy Gear 2.exe. Use the supported Cyberfront Japanese edition.'}
-    if((Test-Path -LiteralPath $win11Exe) -and (Get-FileHash -LiteralPath $win11Exe).Hash -ne $exeHash){
-        throw 'The existing Heavy Gear 2 Win11.exe is different.'
-    }
     if(Get-Process -Name 'Heavy Gear 2','Heavy Gear 2 Win11' -ErrorAction SilentlyContinue){
         throw 'Close Heavy Gear 2 before installing.'
     }
-    $mixer=Join-Path $GameDir 'earmusf.exe'
-    if((Test-Path -LiteralPath $mixer) -and (Get-FileHash -LiteralPath $mixer).Hash -ne '1A81F7408D6D803A57EB94AC20C14529978B5D6520BC0947DB9F01DE1A41423A'){
-        throw 'Unexpected startup mixer helper.'
+    if($Interactive){Add-Type -AssemblyName System.Windows.Forms}
+    if($FromDisc){
+        if(!$GameDir){$GameDir=Join-Path $env:USERPROFILE 'Games\Heavy Gear 2'}
+        $GameDir=$ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($GameDir)
+        if(Test-Path -LiteralPath $GameDir){throw "Choose a new game folder with -GameDir. This path already exists: $GameDir"}
+    } else {
+        $exeHash='C1690A6E471FBB0CAEA1A81BDF135875C7284243AF8AF1B9CB7FF535274E6F9F'
+        $default=Join-Path ${env:ProgramFiles(x86)} 'Cyberfront\Heavy Gear 2'
+        if(!$GameDir){
+            $defaultExe=Join-Path $default 'Heavy Gear 2.exe'
+            if((Test-Path -LiteralPath $defaultExe -PathType Leaf) -and (Get-FileHash -LiteralPath $defaultExe).Hash -eq $exeHash){
+                $GameDir=$default
+                Write-Host "Found Heavy Gear 2: $GameDir"
+            }
+        }
+        if(!$GameDir -and $Interactive){
+            $selector=[Windows.Forms.FolderBrowserDialog]::new()
+            try {
+                $selector.Description='Heavy Gear 2.exe が入っているゲームフォルダを選んでください。'
+                $selector.ShowNewFolderButton=$false
+                if(Test-Path -LiteralPath $default){$selector.SelectedPath=$default}
+                if($selector.ShowDialog() -ne 'OK'){return 'Installation cancelled.'}
+                $GameDir=$selector.SelectedPath
+            } finally {$selector.Dispose()}
+        }
+        if(!$GameDir){throw 'Specify the installed game folder with -GameDir.'}
+        $GameDir=(Resolve-Path -LiteralPath $GameDir).ProviderPath
+        $exe=Join-Path $GameDir 'Heavy Gear 2.exe'
+        $win11Exe=Join-Path $GameDir 'Heavy Gear 2 Win11.exe'
+        if((Get-FileHash -LiteralPath $exe).Hash -ne $exeHash){throw 'Unsupported Heavy Gear 2.exe. Use the supported Cyberfront Japanese edition.'}
+        if((Test-Path -LiteralPath $win11Exe) -and (Get-FileHash -LiteralPath $win11Exe).Hash -ne $exeHash){
+            throw 'The existing Heavy Gear 2 Win11.exe is different.'
+        }
+        $mixer=Join-Path $GameDir 'earmusf.exe'
+        if((Test-Path -LiteralPath $mixer) -and (Get-FileHash -LiteralPath $mixer).Hash -ne '1A81F7408D6D803A57EB94AC20C14529978B5D6520BC0947DB9F01DE1A41423A'){
+            throw 'Unexpected startup mixer helper.'
+        }
     }
     if(!$DiscRoot){
         $DiscRoot=[IO.DriveInfo]::GetDrives() | Where-Object {
@@ -86,6 +93,9 @@ function Install-GamePatch {
         !(Test-Path -LiteralPath $FFmpegPath -PathType Leaf) -or
         !(Test-Path -LiteralPath (Join-Path (Split-Path -Parent $FFmpegPath) 'ffprobe.exe') -PathType Leaf)){
         throw 'Use a Windows FFmpeg build containing ffmpeg.exe and ffprobe.exe in the same folder.'
+    }
+    if($FromDisc){
+        return & (Join-Path $PSScriptRoot 'source\install-from-disc.ps1') -GameDir $GameDir -DiscRoot $DiscRoot -CuePath $CuePath -FFmpegPath $FFmpegPath
     }
 
     $lock=$null
