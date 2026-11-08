@@ -53,11 +53,11 @@ function Install-GamePatch {
     }
     if(!$DiscRoot){throw 'Mount HG2JP.CUE before running the installer.'}
     $audio=Join-Path $GameDir 'CDDA'
-    $wavTracks=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'cdda-sha256.json') -Raw | ConvertFrom-Json
-    $mp3ManifestName='Win11-mp3-sha256.json'
-    $mp3Manifest=Join-Path $audio $mp3ManifestName
-    $missingWav=@($wavTracks | Where-Object {!(Test-Path -LiteralPath (Join-Path $audio $_.Name) -PathType Leaf)})
-    if(!$CuePath -and !(Test-Path -LiteralPath $mp3Manifest -PathType Leaf) -and $missingWav.Count){
+    $tracks=2..19 | ForEach-Object {'Track{0:00}' -f $_}
+    function Get-MissingAudioTracks([string]$extension) {
+        $tracks | Where-Object {!(Test-Path -LiteralPath (Join-Path $audio "$_.$extension") -PathType Leaf)}
+    }
+    if(!$CuePath -and (Get-MissingAudioTracks 'mp3') -and (Get-MissingAudioTracks 'wav')){
         $CuePath=@($GameDir,$PSScriptRoot) | ForEach-Object {
             Join-Path $_ 'HG2JP.CUE'
         } | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1
@@ -144,42 +144,23 @@ function Install-GamePatch {
         $audioStage=Join-Path $stage 'CDDA'
         $newAudio=!(Test-Path -LiteralPath $audio -PathType Container)
         $archiveWav=$false
-        if(Test-Path -LiteralPath $mp3Manifest -PathType Leaf){
-            $checksums=Get-Content -LiteralPath $mp3Manifest -Raw | ConvertFrom-Json
-            foreach($entry in $wavTracks){
-                $name=[IO.Path]::ChangeExtension($entry.Name,'.mp3')
-                $track=Join-Path $audio $name
-                if(!(Test-Path -LiteralPath $track -PathType Leaf) -or
-                    (Get-FileHash -LiteralPath $track).Hash -ne $checksums.$name){
-                    throw "Installed MP3 checksum mismatch: $name. Rename the CDDA folder and reapply with HG2JP.CUE."
-                }
-            }
-        } else {
+        $missingMp3=@(Get-MissingAudioTracks 'mp3')
+        if($missingMp3.Count){
             $wavSource=$audio
-            $archiveWav=!$missingWav.Count
+            $archiveWav=!(Get-MissingAudioTracks 'wav')
             if(!$archiveWav){
                 $wavSource=Join-Path $stage 'CDDA-wav'
                 & (Join-Path $source 'extract-cdda.ps1') -Cue $CuePath -OutputDir $wavSource | Out-Null
             }
-            $checksums=[ordered]@{}
             New-Item -ItemType Directory -Path $audioStage | Out-Null
-            foreach($entry in $wavTracks){
-                $wav=Join-Path $wavSource $entry.Name
-                if((Get-FileHash -LiteralPath $wav).Hash -ne $entry.SHA256){
-                    throw "CD audio checksum mismatch: $($entry.Name)"
-                }
-                $name=[IO.Path]::ChangeExtension($entry.Name,'.mp3')
+            foreach($track in $missingMp3){
+                $wav=Join-Path $wavSource "$track.wav"
+                $name="$track.mp3"
                 $mp3=Join-Path $audioStage $name
                 Write-Host "Encoding $name (128 kbps)"
                 & $FFmpegPath -nostdin -hide_banner -loglevel error -xerror -i $wav -map '0:a:0' -map_metadata -1 -c:a libmp3lame -b:a 128k -y $mp3
                 if($LASTEXITCODE -ne 0){throw "FFmpeg MP3 encoding failed: $name"}
-                $checksums[$name]=(Get-FileHash -LiteralPath $mp3).Hash
                 if(!$newAudio){$files[(Join-Path 'CDDA' $name)]=$mp3}
-            }
-            $manifestStage=Join-Path $audioStage $mp3ManifestName
-            $checksums | ConvertTo-Json | Set-Content -LiteralPath $manifestStage -Encoding Ascii
-            if(!$newAudio){
-                $files[(Join-Path 'CDDA' $mp3ManifestName)]=$manifestStage
             }
         }
         $stagedFiles=[ordered]@{}
@@ -225,9 +206,9 @@ function Install-GamePatch {
         if($archiveWav){
             $savedAudio=Join-Path $originals 'CDDA'
             New-Item -ItemType Directory -Path $savedAudio -Force | Out-Null
-            foreach($entry in $wavTracks){
-                $wav=Join-Path $audio $entry.Name
-                $saved=Join-Path $savedAudio $entry.Name
+            foreach($track in $tracks){
+                $wav=Join-Path $audio "$track.wav"
+                $saved=Join-Path $savedAudio "$track.wav"
                 [IO.File]::Move($wav,$saved)
                 $changes.Add(@{Target=$wav; Saved=$saved})
             }
