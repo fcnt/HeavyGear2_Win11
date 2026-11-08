@@ -1,0 +1,7 @@
+LIBRARY HG2JP
+EXPORTS
+    TextOutA=_HG2TextOutA@20
+    SetTextColor=_HG2SetTextColor@8
+    SetBkColor=_HG2SetBkColor@8
+    SetBkMode=_HG2SetBkMode@8
+    GetSystemPaletteEntries=_HG2GetSystemPaletteEntries@16

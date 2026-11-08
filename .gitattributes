@@ -1,0 +1,6 @@
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.dll binary
+*.zip binary
+/payload/** -text
+/licenses/DDrawCompat.txt -text
